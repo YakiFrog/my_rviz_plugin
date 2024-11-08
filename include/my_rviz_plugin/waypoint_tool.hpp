@@ -18,10 +18,8 @@ public:
 
   void onInitialize() override;
   void onPoseSet(double x, double y, double theta) override;
-  // void addWaypoint(double x, double y, double theta);
 
 private:
-    // ここに必要なメンバ変数を追加できます
     rclcpp::Node::SharedPtr node_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_publisher_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_pub_;

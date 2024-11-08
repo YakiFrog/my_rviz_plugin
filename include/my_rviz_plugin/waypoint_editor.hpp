@@ -20,8 +20,7 @@
 #include <geometry_msgs/msg/pose_stamped.hpp>
 
 // tf2関連
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>  // 新しいヘッダー
-
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp> 
 
 namespace my_rviz_plugin
 {

@@ -90,6 +90,23 @@ public:
         h_layout_coords->addWidget(new QLabel("Waypoint ID:"));
         h_layout_coords->addWidget(id_selector_);
         layout->addLayout(h_layout_coords);
+        // コンストラクタ内でスピンボックスの値が変更されたときに実行されるスロットを接続
+        connect(id_selector_, QOverload<int>::of(&QSpinBox::valueChanged), this, 
+            [this](int id) {
+                if (id < 0 || id >= waypoints.size()) {
+                    return;
+                } else if (id == 0) {
+                    x_input_->setValue(0.0);
+                    y_input_->setValue(0.0);
+                    theta_input_->setValue(0.0);
+                    return;
+                }
+                x_input_->setValue(waypoints[id - 1].x);
+                y_input_->setValue(waypoints[id - 1].y);
+                theta_input_->setValue(waypoints[id - 1].theta * 180.0 / M_PI); // rad -> deg
+            }
+        );
+
 
         // x, y, thetaの入力フィールド
         x_input_ = new QDoubleSpinBox;
@@ -97,7 +114,10 @@ public:
         theta_input_ = new QDoubleSpinBox;
         x_input_->setRange(-1000, 1000);
         y_input_->setRange(-1000, 1000);
-        theta_input_->setRange(-3.14, 3.14); // ラジアン範囲で設定
+        // 小数点以下の桁数を設定
+        x_input_->setDecimals(2); // 0.01 -> 5cm
+        y_input_->setDecimals(2); // 0.01 -> 5cm
+        theta_input_->setRange(-180, 180); // 角度の範囲は適宜変更可能
 
         h_layout_coords = new QHBoxLayout;
         h_layout_coords->addWidget(new QLabel("x:"));
@@ -110,7 +130,7 @@ public:
         layout->addLayout(h_layout_coords);
 
         h_layout_coords = new QHBoxLayout;
-        h_layout_coords->addWidget(new QLabel("theta [rad]:"));
+        h_layout_coords->addWidget(new QLabel("theta [-180 ~ 180deg]:"));
         h_layout_coords->addWidget(theta_input_);
         layout->addLayout(h_layout_coords);
 
@@ -146,7 +166,8 @@ public:
 
                 // ウェイポイントリストに追加
                 this->waypoints.append({x, y, theta});
-                qDebug() << "Added waypoint:" << x << y << theta;
+                qDebug() << "Added waypoint:" << x << y << sin(theta/2) << cos(theta/2);
+                qDebug() << "Orientation:" << msg->pose.orientation.z << msg->pose.orientation.w;
 
                 // add waypoint
                 addWaypoint(x, y, theta);
@@ -273,8 +294,9 @@ public:
             // x, y, thetaを読み込む
             double x = wp[0].as<double>();
             double y = wp[1].as<double>();
-            double theta = wp[5].as<double>();
-
+            double theta_z = wp[5].as<double>();
+            double theta_w = wp[6].as<double>();
+            double theta = tf2::getYaw(tf2::Quaternion(0, 0, theta_z, theta_w));
             // ウェイポイントを追加
             waypoints.append({x, y, theta});
             qDebug() << "Loaded waypoint:" << x << y << theta << waypoints.size();
@@ -306,14 +328,13 @@ public:
         QTextStream out(&file);
         out << "points:\n";
         for (const auto& waypoint : this->waypoints) {
-            double w = sqrt(1.0 - waypoint.theta * waypoint.theta);
             out << "- - " << waypoint.x << "\n";
             out << "  - " << waypoint.y << "\n";
             out << "  - 0.0\n";
             out << "  - 0.0\n";
             out << "  - 0.0\n";
-            out << "  - " << waypoint.theta << "\n";
-            out << "  - " << w << "\n";
+            out << "  - " << sin(waypoint.theta / 2.0) << "\n";
+            out << "  - " << cos(waypoint.theta / 2.0) << "\n";
         }
 
         file.close();
@@ -338,6 +359,9 @@ public:
             qWarning("map_serverのactivateに失敗しました");
             logToConsole("map_serverのactivateに失敗しました");
         }
+
+        qDebug() << "map_serverのconfigureとactivateが完了しました";
+        logToConsole("map_serverのconfigureとactivateが完了しました");
     }
 
     void addWaypoint(double x, double y, double theta)
@@ -403,10 +427,11 @@ public:
         int id = id_selector_->value();
         double new_x = x_input_->value();
         double new_y = y_input_->value();
-        double new_theta = theta_input_->value();
+        // -180 ~ 180をradに変換
+        double new_theta = theta_input_->value() * M_PI / 180.0;
 
         // もし，x, y = 0.0の場合は，IDのウェイポイントを削除
-        if (new_x == 0.0 && new_y == 0.0) {
+        if (new_x == 0.0 && new_y == 0.0 && new_theta == 0.0) {
             if (id == 0) {
                 qWarning("ID 0のウェイポイントは削除できません");
                 logToConsole("ID 0のウェイポイントは削除できません");
@@ -424,7 +449,7 @@ public:
         }
 
         // Waypointの更新
-        waypoints[id] = {new_x, new_y, new_theta};
+        waypoints[id - 1] = {new_x, new_y, new_theta};
         updateWaypoint(id, new_x, new_y, new_theta);
 
         // コンソールにメッセージを出力
