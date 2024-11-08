@@ -26,7 +26,7 @@ rviz2
 ## 機能
 
 <!-- 画像表示 -->
-![Image]({/home/oitrp/sirius_ws/src/my_rviz_plugin/WaypointEditorの画面.png})
+![Image]({WaypointEditorの画面.png})
 
 - Waypointの追加
 - Waypointの編集
