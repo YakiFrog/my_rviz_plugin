@@ -27,7 +27,7 @@ WaypointTool::~WaypointTool()
 void WaypointTool::onInitialize()
 {
   PoseTool::onInitialize();
-  setName("Waypoint Tool");
+  setName("Waypoint Add Tool");
   setIcon(rviz_common::loadPixmap("package://rviz_default_plugins/icons/classes/SetGoal.png")); // アイコンのパスを指定
 }
 
