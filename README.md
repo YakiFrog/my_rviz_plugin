@@ -1,4 +1,4 @@
-# Waypoint Editor Made by Kotani Ryota
+# Waypoint Editor Made by Kotani
 
 ## セットアップ
 
