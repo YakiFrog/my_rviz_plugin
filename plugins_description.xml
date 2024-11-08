@@ -1,0 +1,34 @@
+<library path="my_rviz_plugin">
+  <class
+    name="my_rviz_plugin/MyPanel"
+    type="my_rviz_plugin::MyPanel"
+    base_class_type="rviz_common::Panel">
+    <description>
+      A custom panel for RViz2
+    </description>
+  </class>
+  <class
+    name="my_rviz_plugin/SecondPanel"
+    type="my_rviz_plugin::SecondPanel"
+    base_class_type="rviz_common::Panel">
+    <description>
+      Second custom panel for RViz2
+    </description>
+  </class>
+  <class
+    name="my_rviz_plugin/WaypointEditor"
+    type="my_rviz_plugin::WaypointEditor"
+    base_class_type="rviz_common::Panel">
+    <description>
+      A custom panel for RViz2
+    </description>
+  </class>
+  <class
+    name="my_rviz_plugin/WaypointTool"
+    type="my_rviz_plugin::WaypointTool"
+    base_class_type="rviz_common::Tool">
+    <description>
+      A custom tool for RViz2
+    </description>
+  </class>
+</library>
