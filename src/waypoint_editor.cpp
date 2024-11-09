@@ -142,6 +142,23 @@ public:
         auto* clear_button = new QPushButton("すべてのWaypointsをクリアする");
         layout->addWidget(clear_button);
 
+        /* Navigation用のWaypoint選択 */
+        id_selector_nav_ = new QSpinBox;
+        id_selector_nav_->setRange(1, 1000); // IDの範囲は適宜変更可能
+
+        h_layout_coords = new QHBoxLayout;
+        h_layout_coords->addWidget(new QLabel("Waypoint ID:"));
+        h_layout_coords->addWidget(id_selector_nav_);
+        layout->addLayout(h_layout_coords);
+
+        // ナビゲーション開始・停止ボタン (横並び)
+        auto* h_layout_nav = new QHBoxLayout;
+        auto* start_nav_button = new QPushButton("Nav開始");
+        auto* stop_nav_button = new QPushButton("Nav停止");
+        h_layout_nav->addWidget(start_nav_button);
+        h_layout_nav->addWidget(stop_nav_button);
+        layout->addLayout(h_layout_nav);
+
         // レイアウトを設定
         setLayout(layout);
 
@@ -151,6 +168,8 @@ public:
         connect(save_button, &QPushButton::clicked, this, &WaypointEditor::saveWaypoints);
         connect(update_button, &QPushButton::clicked, this, &WaypointEditor::updateWaypointFromUI);
         connect(clear_button, &QPushButton::clicked, this, &WaypointEditor::clearAllWaypoints);
+        connect(start_nav_button, &QPushButton::clicked, this, &WaypointEditor::startNavigation);
+        connect(stop_nav_button, &QPushButton::clicked, this, &WaypointEditor::stopNavigation);
 
         // マーカーパブリッシャーの設定
         marker_pub_ = node_->create_publisher<visualization_msgs::msg::Marker>("waypoint_markers", 10);
@@ -419,8 +438,8 @@ public:
         circle_marker.id = this->waypoints.size();
         circle_marker.type = visualization_msgs::msg::Marker::SPHERE;
         circle_marker.action = visualization_msgs::msg::Marker::ADD;
-        circle_marker.pose.position.x = x;
-        circle_marker.pose.position.y = y;
+        circle_marker.pose.position.x = new_x;
+        circle_marker.pose.position.y = new_y;
         circle_marker.pose.position.z = 1; // 地面に少し近づける
         circle_marker.scale.x = 0.6; // 半透明円の直径
         circle_marker.scale.y = 0.6; 
@@ -584,6 +603,57 @@ public:
         }
     }
 
+    void startNavigation()
+    {
+        int id = id_selector_nav_->value();
+        if (id < 1 || id > waypoints.size()) { 
+            qWarning("指定されたIDが範囲外です");
+            logToConsole("指定されたIDが範囲外です");
+            return;
+        }
+
+        if (nav_process_ != nullptr) {
+            nav_process_->kill();
+            nav_process_->deleteLater(); 
+            logToConsole("既存のナビゲーションを停止しました");
+            return;
+        }
+
+        nav_process_ = new QProcess(this);
+        connect(nav_process_, &QProcess::readyReadStandardOutput, this, [this]() {
+            QByteArray output = nav_process_->readAllStandardOutput();
+            logToConsole(output);
+        });
+
+        // ナビゲーションを開始するためのコマンドを送信
+        QString command = "ros2";
+        QStringList arguments = {"run", "sirius_navigation", "move_goal.py", "--count", QString::number(id)};
+
+        nav_process_->start(command, arguments);
+
+        if (!nav_process_->waitForStarted()) {
+            qWarning("ナビゲーションの開始に失敗しました");
+            logToConsole("ナビゲーションの開始に失敗しました");
+            return;
+        } else {
+            qDebug() << "ナビゲーションを開始しました";
+            logToConsole("ナビゲーションを開始しました");
+        }
+    }
+
+    void stopNavigation()
+    {
+        if (nav_process_ == nullptr) {
+            qWarning("ナビゲーションが開始されていません");
+            logToConsole("ナビゲーションが開始されていません");
+            return;
+        }
+
+        nav_process_->kill();
+        nav_process_->deleteLater();
+        nav_process_ = nullptr;
+        logToConsole("ナビゲーションを停止しました");
+    }
 
     ~WaypointEditor() {
         stop_spinning_ = true;
@@ -612,6 +682,9 @@ private:
     QDoubleSpinBox *theta_input_;
     rviz_common::RenderPanel* render_panel_; // RenderPanelへの参照
     QTextEdit* console_output_; // コンソール出力用のテキストエディタ
+    QSpinBox* id_selector_nav_; // ナビゲーション用のID選択スピンボックス
+
+    QProcess *nav_process_;  // move_goal.py用のプロセス
 };
 
 }  // namespace my_rviz_plugin
