@@ -32,9 +32,9 @@ class WaypointEditor : public rviz_common::Panel
 public:
     struct Waypoint
     {
-    double x;
-    double y;
-    double theta;
+        double x;
+        double y;
+        double theta;
     };
     WaypointEditor(QWidget *parent = nullptr)
     : rviz_common::Panel(parent)
@@ -84,7 +84,7 @@ public:
 
         // ID選択用のスピンボックス
         id_selector_ = new QSpinBox;
-        id_selector_->setRange(0, 100); // IDの範囲は適宜変更可能
+        id_selector_->setRange(0, 1000); // IDの範囲は適宜変更可能
 
         auto* h_layout_coords = new QHBoxLayout;
         h_layout_coords->addWidget(new QLabel("Waypoint ID:"));
@@ -107,17 +107,17 @@ public:
             }
         );
 
-
         // x, y, thetaの入力フィールド
         x_input_ = new QDoubleSpinBox;
         y_input_ = new QDoubleSpinBox;
         theta_input_ = new QDoubleSpinBox;
         x_input_->setRange(-1000, 1000);
         y_input_->setRange(-1000, 1000);
+        theta_input_->setRange(-180, 180); // 角度の範囲は適宜変更可能
         // 小数点以下の桁数を設定
         x_input_->setDecimals(2); // 0.01 -> 5cm
         y_input_->setDecimals(2); // 0.01 -> 5cm
-        theta_input_->setRange(-180, 180); // 角度の範囲は適宜変更可能
+        theta_input_->setDecimals(2); // 0.01 -> 0.01deg
 
         h_layout_coords = new QHBoxLayout;
         h_layout_coords->addWidget(new QLabel("x:"));
@@ -301,15 +301,12 @@ public:
             waypoints.append({x, y, theta});
             qDebug() << "Loaded waypoint:" << x << y << theta << waypoints.size();
             logToConsole("[" + QString::number(waypoints.size()) + "] " + QString::number(x) + ", " + QString::number(y) + ", " + QString::number(theta));
-
             // ウェイポイントを表示
             addWaypoint(x, y, theta);
         }
-
         qDebug() << "Waypoints loaded from" << file_name;
         logToConsole("Waypoints loaded from: " + file_name);
     }
-
 
     void saveWaypoints()
     {
@@ -383,7 +380,7 @@ public:
         marker.action = visualization_msgs::msg::Marker::ADD; // マーカーのアクションを追加に設定
         marker.pose.position.x = new_x; // X座標
         marker.pose.position.y = new_y; // Y座標
-        marker.pose.position.z = 0.0; // Z座標
+        marker.pose.position.z = 5.0; // Z座標
         marker.pose.orientation = tf2::toMsg(tf2::Quaternion(tf2::Vector3(0, 0, 1), new_theta));
         marker.scale.x = 0.3; // サイズを設定
         marker.scale.y = 0.1; // 太さ
@@ -392,7 +389,6 @@ public:
         marker.color.g = 1.0f;
         marker.color.b = 0.0f;
         marker.color.a = 1.0; // アルファ（透明度）を設定
-
         // マーカーをパブリッシュ
         marker_pub_->publish(marker);
 
@@ -408,13 +404,34 @@ public:
         text_marker.pose.position.y = new_y; // Y座標
         text_marker.pose.position.z = 10; // Z座標を少し上げて表示
         text_marker.pose.orientation.w = 1.0; // 向きの設定
-        text_marker.scale.z = 0.3; // テキストのサイズを設定
+        text_marker.scale.z = 0.5; // テキストのサイズを設定
         text_marker.color.r = 1.0f; // 色を設定
-        text_marker.color.g = 1.0f;
-        text_marker.color.b = 1.0f; // 白色
+        text_marker.color.g = 0.0f; // 色を設定
+        text_marker.color.b = 0.0f; // 白色
         text_marker.color.a = 1.0; // アルファ（透明度）を設定
         text_marker.text = std::to_string(waypoints.size()); // ウェイポイントのインデックス番号をテキストとして設定
 
+        // 背景の半透明丸マーカーの設定
+        visualization_msgs::msg::Marker circle_marker;
+        circle_marker.header.frame_id = "map";
+        circle_marker.header.stamp = node_->now();
+        circle_marker.ns = "waypoints_background";
+        circle_marker.id = this->waypoints.size();
+        circle_marker.type = visualization_msgs::msg::Marker::SPHERE;
+        circle_marker.action = visualization_msgs::msg::Marker::ADD;
+        circle_marker.pose.position.x = x;
+        circle_marker.pose.position.y = y;
+        circle_marker.pose.position.z = 1; // 地面に少し近づける
+        circle_marker.scale.x = 0.6; // 半透明円の直径
+        circle_marker.scale.y = 0.6; 
+        circle_marker.scale.z = 0.05; // 薄い円
+        circle_marker.color.r = 0.0f;
+        circle_marker.color.g = 0.0f;
+        circle_marker.color.b = 0.0f;
+        circle_marker.color.a = 0.5; // 半透明設定
+
+        // 背景の半透明丸マーカーをパブリッシュ
+        marker_pub_->publish(circle_marker);
         // テキストマーカーをパブリッシュ
         marker_pub_->publish(text_marker);
 
@@ -468,7 +485,7 @@ public:
         marker.action = visualization_msgs::msg::Marker::MODIFY; // マーカーのアクションを変更に設定
         marker.pose.position.x = new_x; // 新しいX座標
         marker.pose.position.y = new_y; // 新しいY座標
-        marker.pose.position.z = 0.0; // Z座標
+        marker.pose.position.z = 5.0; // Z座標
         marker.pose.orientation = tf2::toMsg(tf2::Quaternion(tf2::Vector3(0, 0, 1), new_theta)); // 新しい向き
         marker.scale.x = 0.3; // サイズ
         marker.scale.y = 0.1; 
@@ -477,7 +494,6 @@ public:
         marker.color.g = 1.0f;
         marker.color.b = 0.0f;
         marker.color.a = 1.0;
-
         // マーカーをパブリッシュして更新
         marker_pub_->publish(marker);
         
@@ -493,13 +509,34 @@ public:
         text_marker.pose.position.y = new_y; // Y座標
         text_marker.pose.position.z = 10; // Z座標を少し上げて表示
         text_marker.pose.orientation.w = 1.0; // 向きの設定
-        text_marker.scale.z = 0.3; // テキストのサイズを設定
+        text_marker.scale.z = 0.5; // テキストのサイズを設定
         text_marker.color.r = 1.0f; // 色を設定
-        text_marker.color.g = 1.0f;
-        text_marker.color.b = 1.0f; // 白色
+        text_marker.color.g = 0.0f;
+        text_marker.color.b = 0.0f; // 白色
         text_marker.color.a = 1.0; // アルファ（透明度）を設定
         text_marker.text = std::to_string(id); // ウェイポイントのインデックス番号をテキストとして設定
 
+        // 背景の半透明丸マーカーの設定
+        visualization_msgs::msg::Marker circle_marker;
+        circle_marker.header.frame_id = "map";
+        circle_marker.header.stamp = node_->now();
+        circle_marker.ns = "waypoints_background";
+        circle_marker.id = id;
+        circle_marker.type = visualization_msgs::msg::Marker::SPHERE;
+        circle_marker.action = visualization_msgs::msg::Marker::ADD;
+        circle_marker.pose.position.x = new_x;
+        circle_marker.pose.position.y = new_y;
+        circle_marker.pose.position.z = 1; // 地面に少し近づける
+        circle_marker.scale.x = 0.6; // 半透明円の直径
+        circle_marker.scale.y = 0.6; 
+        circle_marker.scale.z = 0.05; // 薄い円
+        circle_marker.color.r = 0.0f;
+        circle_marker.color.g = 0.0f;
+        circle_marker.color.b = 0.0f;
+        circle_marker.color.a = 0.5; // 半透明設定
+
+        // 背景の半透明丸マーカーをパブリッシュ
+        marker_pub_->publish(circle_marker);
         // テキストマーカーをパブリッシュ
         marker_pub_->publish(text_marker);
     }
