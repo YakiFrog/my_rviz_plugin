@@ -93,7 +93,7 @@ public:
         // コンストラクタ内でスピンボックスの値が変更されたときに実行されるスロットを接続
         connect(id_selector_, QOverload<int>::of(&QSpinBox::valueChanged), this, 
             [this](int id) {
-                if (id < 0 || id >= waypoints.size()) {
+                if (id < 0 || id > waypoints.size()) {
                     return;
                 } else if (id == 0) {
                     x_input_->setValue(0.0);
@@ -478,7 +478,7 @@ public:
         }
 
         // ID範囲外のチェック
-        if (id < 0 || id >= waypoints.size()) {
+        if (id < 0 || id > waypoints.size()) {
             qWarning("指定されたIDが範囲外です");
             logToConsole("指定されたIDが範囲外です");
             return;
