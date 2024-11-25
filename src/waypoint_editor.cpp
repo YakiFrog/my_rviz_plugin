@@ -344,13 +344,13 @@ public:
         QTextStream out(&file);
         out << "points:\n";
         for (const auto& waypoint : this->waypoints) {
-            out << "- - " << waypoint.x << "\n";
-            out << "  - " << waypoint.y << "\n";
+            out << "- - " << static_cast<float>(waypoint.x) << "\n";
+            out << "  - " << static_cast<float>(waypoint.y) << "\n";
             out << "  - 0.0\n";
             out << "  - 0.0\n";
             out << "  - 0.0\n";
-            out << "  - " << sin(waypoint.theta / 2.0) << "\n";
-            out << "  - " << cos(waypoint.theta / 2.0) << "\n";
+            out << "  - " << static_cast<float>(sin(waypoint.theta / 2.0)) << "\n";
+            out << "  - " << static_cast<float>(cos(waypoint.theta / 2.0)) << "\n";
         }
 
         file.close();
